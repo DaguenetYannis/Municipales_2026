@@ -235,3 +235,56 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 ```
+## Calculate Error Metrics
+```python
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+def print_error_metrics(y_true, y_pred, model_name):
+    mse = mean_squared_error(y_true, y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    print(f'{model_name} -- MSE: {mse:.4f}, MAE: {mae:.4f}')
+
+print_error_metrics(y_actual, mlp_predictions, 'MLP')
+print_error_metrics(y_actual, kan_predictions, 'KAN')
+```
+
+##Extract & plot univariate functions
+
+```python
+def plot_univariate_functions(kan_model, X_data, feature_names=None):
+    num_features = X_data.size(1)
+    if feature_names is None:
+        feature_names = [f'Feature {i+1}' for i in range(num_features)]
+
+    plt.figure(figsize=(12, 8))
+
+    for i in range(num_features):
+        #Get the specific univariate function for the feature
+        univariate_function = kan_model.univariate_function_layers[i]
+
+        #generate a range of input values
+        xi_min = X_data[:, i].min().item()
+        xi_max = X_data[:, i].max().item()
+        xi_range = torch.linspace(xi_min, xi_max, 100).unsqueeze(1)
+
+        # pass through the univariate function and take the first output
+        with torch.no_grad():
+            yi = univariate_function(xi_range)[:, 0].squeeze().numpy() #Only take the first output
+
+        #Plot the function
+        plt.subplot((num_features + 1) // 2, 2, i + 1)
+        plt.plot(xi_range.numpy(), yi, label=f'Feature {i+1}')
+        plt.title(f'Univariate Function for {feature_names[i]}')
+        plt.xlabel('Input Value')
+        plt.ylabel('Output Value')
+        plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+```
+
+## Plot the univariate functions
+
+```python
+plot_univariate_functions(kan_model, X_train)
+```
