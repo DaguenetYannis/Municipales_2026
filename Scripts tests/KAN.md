@@ -1,5 +1,9 @@
 # Kolmogorov-Arnold-Networks
 
+The goal here is to predict the next value of a time series using the previous observations, and to compare two different neural architectures:
+a classical multilayer perceptron, and a Kolmogorov–Arnold Network.
+KANs are interesting because, instead of mixing all inputs immediately, they first learn one function per input variable, and only combine them at the end. This makes them more interpretable.
+
 ## Imports
 
 ```python
@@ -10,6 +14,11 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 ```
 ## Time Series Dataset Generation
+
+We start by creating a synthetic dataset.
+It’s simply a sine wave over time, to which we add some Gaussian noise. 
+This gives us a smooth underlying signal, but with enough randomness to make prediction non-trivial.
+We plot it to visually check what we’re working with — a noisy but clearly structured time series.
 
 ```python
 # Generate time points
@@ -27,7 +36,11 @@ plt.legend()
 plt.show()
 ```
 ## Data Preparation for Modelling
+To turn this into a supervised learning task, we use a sliding window approach.
 We use a window size (`n_steps`) of 4, meaning each input sample contains the four previous observations.
+Concretely, each training example consists of the last four observed values, and the target is the value that comes immediately after.
+So the model learns a mapping from the past four time steps to the next one.
+Once the input–output pairs are created, we convert everything to PyTorch tensors, split the data into training and test sets, and wrap them into DataLoaders for efficient mini-batch training
 
 ```python
 # Define the window size.
@@ -64,6 +77,10 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 ## Implement the MLP
 
+Our first model is a standard multilayer perceptron.
+It takes the four previous time steps as input, passes them through a couple of fully connected layers with ReLU activations, and outputs a single scalar prediction.
+This serves as a baseline: it’s expressive, but completely mixes all inputs together from the first layer.
+
 ```python
 class MLP(nn.Module):
     def __init__(self, input_size):
@@ -81,6 +98,13 @@ class MLP(nn.Module):
 ```
 
 ## Implement the KAN
+
+The second model is the Kolmogorov–Arnold Network.
+
+Here, instead of immediately combining the four inputs, we treat each input separately at first.
+Each time step is passed through its own small neural network — what we call a univariate function.
+So we learn one nonlinear transformation per input feature.
+Once all these univariate transformations are computed, we concatenate their outputs and feed them into a final network that combines them to produce the prediction.
 
 ```python
 class KAN(nn.Module):
@@ -117,6 +141,13 @@ class KAN(nn.Module):
 ```
 
 ## Training Function
+
+Both models are trained using the same training loop.
+We use mean squared error as the loss function and Adam as the optimizer, a gradient descent algorithm. 
+We use early stopping to prevent overfitting by stopping training when the validation loss stops improving for a certain number of epochs. 
+We also print the training and test losses at each epoch to monitor convergence.
+At each epoch, we first train on the training set, then evaluate the model on the test set to track generalization performance.
+We store and later plot both training and test losses so we can visually compare convergence and overfitting behavior.
 
 ```python
 def train(model, train_loader, test_loader, num_epochs=50, learning_rate=0.001):
@@ -175,6 +206,10 @@ kan_train_losses, kan_test_losses = train(kan_model, train_loader, test_loader, 
 
 ## Visualize the Training and Test losses
 
+After training, we visualize the loss curves for both models.
+This allows us to see how quickly each model learns and whether one of them generalizes better than the other.
+In practice, both models learn the signal, but their learning dynamics can differ.
+
 ```python
 plt.figure(figsize=(12,4))
 
@@ -199,6 +234,11 @@ plt.show()
 ```
 
 ## Evaluate and Visualize Predictions
+
+We then compare the models’ predictions on the test set against the true values.
+This gives an intuitive, visual sense of how well each model tracks the underlying signal.
+Again, the MLP and the KAN may produce similar accuracy, but they arrive there in very different ways.
+
 ```python
 def evaluate_model(model, X_data):
     model.eval()
@@ -236,6 +276,10 @@ plt.tight_layout()
 plt.show()
 ```
 ## Calculate Error Metrics
+
+To make the comparison more rigorous, we compute standard regression metrics: mean squared error and mean absolute error.
+This lets us compare performance numerically, beyond just visual inspection.
+
 ```python
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
@@ -284,6 +328,11 @@ def plot_univariate_functions(kan_model, X_data, feature_names=None):
 ```
 
 ## Plot the univariate functions
+
+One of the main advantages of the KAN is interpretability.
+Because each input has its own learned function, we can extract and plot those functions directly.
+For each time step, we vary that input over its observed range and visualize how the corresponding univariate network transforms it.
+This gives us insight into how each past observation contributes to the final prediction — something that’s very difficult to do with a standard MLP.
 
 ```python
 plot_univariate_functions(kan_model, X_train)
