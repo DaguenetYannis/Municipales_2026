@@ -337,3 +337,5 @@ This gives us insight into how each past observation contributes to the final pr
 ```python
 plot_univariate_functions(kan_model, X_train)
 ```
+
+These four subplots show a negative slope : The higher the output, the lower the input. The higher the input value, the lower the output value. This is to be expected in a sine wave. The KAN allows us to clearly a global trend. 
