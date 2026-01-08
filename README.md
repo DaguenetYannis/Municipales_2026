@@ -1,5 +1,8 @@
 # Municipales_2026
+Auteurs: ONILLON Lili & DAGUENET Yannis
+
 Une analyse data des municipales 2026.
+
 
 
 
